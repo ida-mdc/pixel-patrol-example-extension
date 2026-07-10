@@ -9,11 +9,12 @@ dependencies = [
     "pyarrow",
 ]
 
+[project.urls]
+Homepage = "https://pixelpatrol.app/"
+Repository = "https://github.com/ida-mdc/pixel-patrol-example-extension"
+
 [tool.uv]
 package = true
-
-[tool.uv.sources]
-pixel-patrol-base = { path = "../../packages/pixel-patrol-base" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pixel_patrol_hai_watch"]
