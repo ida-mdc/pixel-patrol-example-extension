@@ -29,13 +29,17 @@ class GlowSpotterProcessor:
     pieces; nothing requires you to ship both.
     """
 
-    NAME       = "glow-spotter"
-    CHUNK_KIND = ChunkKind.LEAF
-    INPUT      = RecordSpec(axes={"X", "Y"}, kinds={"intensity"})
-    OUTPUT     = "features"
+    NAME        = "glow-spotter"
+    DESCRIPTION = "Counts pixels that stand out from a patch's median brightness as bioluminescent glows."
+    CHUNK_KIND  = ChunkKind.LEAF
+    INPUT       = RecordSpec(axes={"X", "Y"}, kinds={"intensity"})
+    OUTPUT      = "features"
 
-    OUTPUT_SCHEMA          = {"glow_count": int}
-    OUTPUT_SCHEMA_PATTERNS = []
+    OUTPUT_SCHEMA              = {"glow_count": int}
+    OUTPUT_SCHEMA_PATTERNS     = []
+    OUTPUT_SCHEMA_DESCRIPTIONS = {
+        "glow_count": "Number of pixels brighter than the patch median by a healthy margin.",
+    }
 
     def run_chunk(self, record: Record) -> Dict:
         arr = record.data.compute() if hasattr(record.data, "compute") else np.asarray(record.data)

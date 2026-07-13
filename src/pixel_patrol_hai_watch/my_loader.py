@@ -21,13 +21,17 @@ class SharkCamLoader:
     """
 
     NAME = "shark-cam"
+    DESCRIPTION = "Reads a .parquet table of uint8 columns as a deep-sea camera snapshot."
 
     SUPPORTED_EXTENSIONS: Set[str] = {"parquet"}
     FOLDER_EXTENSIONS:    Set[str] = set()
     CONTAINER_EXTENSIONS: Set[str] = set()
 
-    OUTPUT_SCHEMA:          Dict[str, Any] = {"depth_zone": str}
-    OUTPUT_SCHEMA_PATTERNS: List[tuple]    = []
+    OUTPUT_SCHEMA:              Dict[str, Any] = {"depth_zone": str}
+    OUTPUT_SCHEMA_PATTERNS:     List[tuple]    = []
+    OUTPUT_SCHEMA_DESCRIPTIONS: Dict[str, str] = {
+        "depth_zone": "Ocean layer the snapshot was taken in (sunlit, twilight, midnight or abyss).",
+    }
 
     def is_folder_supported(self, path: Path) -> bool:
         return False
