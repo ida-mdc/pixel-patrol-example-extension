@@ -244,6 +244,18 @@ everything is discovered automatically at runtime - no explicit registration
 or path needed when calling `create_project(..., loader="shark-cam")` or
 `serve_viewer(report_path)`.
 
+### Licensing
+
+For easy redistribution, use a permissive license - it also matches the rest of the pixel-patrol ecosystem. Add a `LICENSE` file and declare it in `pyproject.toml`:
+
+```toml
+[project]
+license = "MIT"
+license-files = ["LICENSE"]
+```
+
+See the [Extensions docs](https://pixelpatrol.app/docs/extensions/#licensing) for guidance on which licenses and dependencies are appropriate.
+
 ---
 
 ## Running locally
