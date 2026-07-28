@@ -56,6 +56,8 @@ not a base class, so `SharkCamLoader` needs no import or inheritance from
 | `OUTPUT_SCHEMA_PATTERNS` | `list[tuple[str, type]]` | no - defaults to empty | regex/type pairs for dynamically-named metadata columns (e.g. `pixel_size_X`) |
 | `is_folder_supported(path)` | `(Path) -> bool` | no - only if `FOLDER_EXTENSIONS` is non-empty | whether a *folder* (not a file) should be treated as one image |
 
+`dim_order` is the only metadata field that must be correct - `shape`/`dtype` are always derived from the pixel array, not from `meta`. The pipeline also overwrites `ndim`, `num_pixels`, `size_<axis>`, `dim_<axis>`, and the filesystem columns (`path`, `name`, `type`, `parent`, `depth`, `size_bytes`, `file_extension`, `modification_date`, `imported_path`, `common_base`, `child_id`) after loading, so don't bother setting these. `OUTPUT_SCHEMA` is documentation only: any other field in `meta` reaches the table whether or not it's declared there, so a loader can pass through metadata fields it doesn't fully understand.
+
 In our toy example here, `SharkCamLoader` reads a table with `pyarrow.parquet`,
 stacks its columns into a 2-D `uint8` array, reads out the metadata field our
 toy dataset carries (`depth_zone`), and wraps it all with
