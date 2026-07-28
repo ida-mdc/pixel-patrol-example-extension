@@ -76,4 +76,46 @@ export default {
       yaxis: { title: 'Glows spotted', rangemode: 'tozero' },
     }, { responsive: true });
   },
+
+  // Shown on the widget's tile in Overview mode (the default tile-gallery view).
+
+  async overviewMessage(ctx) {
+    const { andWhere } = ctx.sql;
+    const rows = await ctx.queryRows(`
+      SELECT "depth_zone" AS depth_zone, AVG("glow_count") AS avg_glow
+      FROM pp_data
+      ${andWhere(ctx.where, '"depth_zone" IS NOT NULL AND "glow_count" IS NOT NULL')}
+      GROUP BY 1
+    `);
+    if (!rows.length) return null;
+    const top = rows.reduce((a, b) => (Number(b.avg_glow) > Number(a.avg_glow) ? b : a));
+    return `Glow sightings peak in the <strong>${top.depth_zone}</strong> zone.`;
+  },
+
+  async overviewPlot(container, ctx) {
+    const { andWhere } = ctx.sql;
+    const rows = await ctx.queryRows(`
+      SELECT "depth_zone" AS depth_zone, "glow_count" AS glows
+      FROM pp_data
+      ${andWhere(ctx.where, '"depth_zone" IS NOT NULL AND "glow_count" IS NOT NULL')}
+    `);
+    if (!rows.length) return false;
+
+    const zones = DEPTH_ORDER.filter(z => rows.some(r => r.depth_zone === z));
+    const xJitter = () => (Math.random() - 0.5) * 0.5;
+    ctx.plot.appendMini(container, [{
+      type: 'scatter',
+      mode: 'markers',
+      x: rows.map(r => zones.indexOf(r.depth_zone) + xJitter()),
+      y: rows.map(r => Number(r.glows)),
+      marker: { size: 8, color: '#3d7ea6' },
+    }], {
+      xaxis: {
+        tickmode: 'array',
+        tickvals: zones.map((_, i) => i),
+        ticktext: zones,
+        range: [-0.5, zones.length - 0.5],
+      },
+    });
+  },
 };

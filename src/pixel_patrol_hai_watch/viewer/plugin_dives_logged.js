@@ -62,4 +62,39 @@ export default {
       yaxis: { title: 'Dives logged', rangemode: 'tozero', dtick: 1 },
     }, { responsive: true });
   },
+
+  // Shown on the widget's tile in Overview mode (the default tile-gallery view).
+
+  async overviewMessage(ctx) {
+    const { andWhere } = ctx.sql;
+    const [{ n }] = await ctx.queryRows(`
+      SELECT COUNT(*) AS n
+      FROM pp_data
+      ${andWhere(ctx.where, '"depth_zone" IS NOT NULL')}
+    `);
+    const count = Number(n ?? 0);
+    if (!count) return null;
+    return `Logged <strong>${count}</strong> dive${count === 1 ? '' : 's'} across depth zones.`;
+  },
+
+  async overviewPlot(container, ctx) {
+    const { andWhere } = ctx.sql;
+    const rows = await ctx.queryRows(`
+      SELECT "depth_zone" AS depth_zone, COUNT(*) AS cnt
+      FROM pp_data
+      ${andWhere(ctx.where, '"depth_zone" IS NOT NULL')}
+      GROUP BY 1
+    `);
+    if (!rows.length) return false;
+
+    const zones = DEPTH_ORDER.filter(z => rows.some(r => r.depth_zone === z));
+    ctx.plot.appendMini(container, [{
+      type: 'bar',
+      x: zones,
+      y: zones.map(z => Number(rows.find(r => r.depth_zone === z)?.cnt ?? 0)),
+      marker: { color: '#3d7ea6' },
+    }], {
+      xaxis: { categoryarray: zones, categoryorder: 'array' },
+    });
+  },
 };
