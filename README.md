@@ -138,7 +138,11 @@ export default {
   label: 'My Widget',          // shown in the sidebar widget list
   group: 'My Extension Name',  // optional - gives the widget its own sidebar section
   scope: 'image',              // optional - 'file' | 'image' | 'slice', shown as a badge
-                               // describing what one datapoint in this widget represents
+                               // describing what one datapoint in this widget represents.
+                               // If render() changes this at runtime (e.g. a "Slice by"
+                               // toggle), call ctx.plot.setScopeBadge(el, scope) to keep
+                               // it honest - and make sure overviewPlot always reflects
+                               // the base scope, since collapsing a tile doesn't re-run render()
 
   requires(schema) {
     // return false to hide the widget when its columns are absent
@@ -164,7 +168,9 @@ export default {
   },
 
   async overviewPlot(container, ctx) {
-    // small preview plot drawn into the tile; return false to skip it
+    // small preview plot drawn into the tile; return false to skip it.
+    // Apply ctx.where here too - it's a separate query path from render(),
+    // so filters aren't inherited automatically.
   },
 };
 ```
@@ -194,6 +200,7 @@ The DuckDB table is always named `pp_data`; `Plotly` is exposed globally as
 | `ctx.where` | `string` | SQL `WHERE` clause for the active filter (or `''`) - merge with `AND` if your query has its own `WHERE` |
 | `ctx.groups` | `string[]` | distinct values of the active group column |
 | `ctx.filteredCount` / `ctx.totalRows` | `number` | row counts |
+| `ctx.plot` | `object` | plotting/DOM helpers (`appendMini`, `setScopeBadge`, `niceName`, ...) |
 
 See the [viewer README](../../viewer/README.md) for the full guide and the
 extension-manifest format in detail.
