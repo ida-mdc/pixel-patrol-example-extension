@@ -1,12 +1,11 @@
-# Minimal Extension Example - HAI Watch
+# Minimal Extension Example - Tomato Harvest Helper
 
-<img src="assets/shark.png" alt="A softly glowing cartoon shark" width="260" align="right">
+<img src="assets/tomato.png" alt="A happy little cartoon tomato" width="260" align="right">
 
 A guide to building your own PixelPatrol extension - shown here as a
 complete, self-contained example. It walks through the **entire** extension
 surface: a custom **loader**, a custom **processor**, and two custom
-**viewer widgets** (one that visualises loader metadata, one that visualises
-a processor's output).
+**viewer widgets** (both visualising loader metadata and processor output).
 
 **You almost certainly don't need all four.** A loader, a processor, and a
 viewer widget are independent - ship just the one you need and skip the rest.
@@ -16,7 +15,7 @@ on its own.
 ```
 minimal-extension/
 ├── src/
-│   └── pixel_patrol_hai_watch/
+│   └── pixel_patrol_tomato_harvest_helper/
 │       ├── my_loader.py          custom loader
 │       ├── my_processor.py       custom processor
 │       ├── plugin_registry.py    registers loader, processor & viewer extension
@@ -35,12 +34,12 @@ helpers, not part of the extension itself.)
 **If PixelPatrol can't read your file format - or doesn't read it (and its
 metadata) the way you want - write a loader extension.**
 
-`src/pixel_patrol_hai_watch/my_loader.py` implements `SharkCamLoader`
-(name: `shark-cam`).
+`src/pixel_patrol_tomato_harvest_helper/my_loader.py` implements `TomatoLoader`
+(name: `tomato`).
 
 A loader is any class that satisfies the `PixelPatrolLoader` protocol from
 `pixel_patrol_base.core.contracts` - a [`typing.Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol),
-not a base class, so `SharkCamLoader` needs no import or inheritance from
+not a base class, so `TomatoLoader` needs no import or inheritance from
 `pixel_patrol_base`; matching the shape below is enough. It needs:
 
 | Member | Type | Required? | Purpose |
@@ -58,9 +57,9 @@ not a base class, so `SharkCamLoader` needs no import or inheritance from
 
 `dim_order` is the only metadata field that must be correct - `shape`/`dtype` are always derived from the pixel array, not from `meta`. The pipeline also overwrites `ndim`, `num_pixels`, `size_<axis>`, `dim_<axis>`, and the filesystem columns (`path`, `name`, `type`, `parent`, `depth`, `size_bytes`, `file_extension`, `modification_date`, `imported_path`, `common_base`, `child_id`) after loading, so don't bother setting these. `OUTPUT_SCHEMA` is documentation only: any other field in `meta` reaches the table whether or not it's declared there, so a loader can pass through metadata fields it doesn't fully understand.
 
-In our toy example here, `SharkCamLoader` reads a table with `pyarrow.parquet`,
-stacks its columns into a 2-D `uint8` array, reads out the metadata field our
-toy dataset carries (`depth_zone`), and wraps it all with
+In our toy example here, `TomatoLoader` reads a `.npz` file with NumPy,
+extracts its 32x32 RGB `uint8` pixel array and the `season` metadata
+(spring, summer, autumn or winter), and wraps it all with
 `record_from(..., kind="intensity")` - the `kind` is what lets the *built-in*
 processors (basic metrics, histogram, thumbnail) pick the patches up
 automatically too, right alongside our custom one.
@@ -72,8 +71,8 @@ automatically too, right alongside our custom one.
 **If you want to compute a metric on images - any images, regardless of who
 loaded them - write a processor extension.**
 
-`src/pixel_patrol_hai_watch/my_processor.py` implements `GlowSpotterProcessor`
-(name: `glow-spotter`).
+`src/pixel_patrol_tomato_harvest_helper/my_processor.py` implements `TomatoRipenessProcessor`
+(name: `tomato-ripeness`).
 
 A processor is any class that satisfies the `PixelPatrolProcessor` protocol -
 every member below is required:
@@ -88,19 +87,17 @@ every member below is required:
 | `run_chunk(record)` | `(Record) -> dict` | does the actual computation on one chunk |
 | `get_aggregation(name)` | `(str) -> Callable \| None` | how to combine multiple chunks' values for column `name` into the per-image value |
 
-In our toy example here, `GlowSpotterProcessor` runs on every `intensity`
-record with `X`/`Y` axes (`RecordSpec(axes={"X", "Y"}, kinds={"intensity"})`),
-uses `CHUNK_KIND.LEAF`, and adds a single column, `glow_count` (`int`): the
-number of pixels that stand out clearly brighter than the patch's median
-(`> median + 60`) - the patch's "glow". Sunlit patches have almost none,
-deep ones light up with plenty, by construction. Because glows are
-independent per pixel, `get_aggregation` simply sums the counts from every
-chunk into the per-image total.
+In our toy example here, `TomatoRipenessProcessor` analyses the RGB
+pixel data of tomato images and adds four integer columns:
+`unripe_tomato_pixels`, `midripe_tomato_pixels`, `ripe_tomato_pixels`,
+and `total_tomato_pixels`. It classifies tomato-colored pixels by their
+RGB values and counts the pixels in each ripeness category - not the
+number of individual tomatoes. The synthetic images contain green-yellow
+(unripe), orange (midripe) and red (ripe) tomatoes.
 
-Notice `GlowSpotterProcessor` never imports or refers to `SharkCamLoader` by
-name - it only declares the *kind* of record it needs (an `intensity` image
-with `X`/`Y` axes) and runs against anything that produces one: these
-synthetic dive patches, a microscopy stack, a photo, any loader's output.
+Notice `TomatoRipenessProcessor` never imports or refers to `TomatoLoader` by
+name - it only declares the *kind* of image record it needs and processes
+matching records regardless of which loader produced them.
 
 ---
 
@@ -109,26 +106,24 @@ synthetic dive patches, a microscopy stack, a photo, any loader's output.
 **If you want to visualise your data as an interactive report in the browser - your own extension's
 columns or anyone else's - write a viewer widget.**
 
-`src/pixel_patrol_hai_watch/viewer/` ships **two** widgets, one for each kind
-of data a loader can surface:
+`src/pixel_patrol_tomato_harvest_helper/viewer/` ships **two** widgets:
 
-- **`plugin_dives_logged.js`** ("Dives Logged") visualises the *fake image
-  metadata* on its own: a stacked bar chart of how many dive snapshots were
-  logged in each `depth_zone`, split by dive site. `depth_zone` comes straight
-  from `SharkCamLoader`; the site (`imported_path_short`, here `azores_log` /
-  `kermadec_log`) is derived automatically from each file's folder by Pixel
-  Patrol itself, so every table has it - no loader involvement needed.
-- **`plugin_glow_by_depth.js`** ("Glow Sightings by Depth") visualises a
-  *metric derived from the pixel data*: a jittered scatter of `glow_count`
-  (computed by `GlowSpotterProcessor`) against `depth_zone`, colored by site.
-  A scatter rather than a box/violin plot, because each category here only
-  holds a handful of points - too few for a distributional summary to be
-  meaningful.
+- **`plugin_tomato_pixel_count.js`** ("Tomato Pixels by Season") visualises
+  a **metric derived from the pixel data**: a scatter plot of
+  `total_tomato_pixels` (computed by `TomatoRipenessProcessor`) against
+  `season`, split by growing environment (`greenhouse` or `outdoors`).
+  A scatter rather than a box/violin plot is used because each season
+  contains only a handful of observations.
+- **`plugin_tomato_ripeness.js`** ("Tomato Ripeness by Season") visualises
+  the proportions of unripe, midripe and ripe tomato pixels as a
+  100%-stacked bar chart, with greenhouse and outdoors shown side by side
+  for each season.
 
-Both are listed in `viewer/extension.json` and loaded automatically by the
-viewer, and both declare `group: 'Pixel HAI Watch'` so they get their own
-named sidebar section instead of being lumped under the generic "Other
-Widgets".
+The `season` metadata comes from `TomatoLoader`, while the growing
+environment comes from the folder structure and is available as `parent0`
+in the report. Both widgets are auto-discovered through
+`viewer/extension.json` and declare `group: 'Tomato Harvest Helper'` so they
+appear in their own sidebar section instead of "Other Widgets".
 
 A plugin is a JS module that exports a single default object:
 
@@ -180,8 +175,8 @@ The DuckDB table is always named `pp_data`; `Plotly` is exposed globally as
 
 ```json
 {
-  "name": "Pixel HAI Watch Extension",
-  "plugins": ["./plugin_dives_logged.js", "./plugin_glow_by_depth.js"]
+  "name": "Tomato Harvest Helper",
+  "auto_detect": true
 }
 ```
 
@@ -202,12 +197,10 @@ The DuckDB table is always named `pp_data`; `Plotly` is exposed globally as
 | `ctx.filteredCount` / `ctx.totalRows` | `number` | row counts |
 | `ctx.plot` | `object` | plotting/DOM helpers (`appendMini`, `setScopeBadge`, `niceName`, ...) |
 
-See the [viewer README](../../viewer/README.md) for the full guide and the
-extension-manifest format in detail.
 
 Notice neither widget imports anything from the Python side or refers to
-`SharkCamLoader`/`GlowSpotterProcessor` by name - they just query for the
-columns they need (`depth_zone`, `glow_count`) and hide themselves via
+`TomatoLoader`/`TomatoRipenessProcessor` by name - they just query for the
+columns they need (`season`, `total_tomato_pixels`, `unripe_tomato_pixels`, `midripe_tomato_pixels`, `ripe_tomato_pixels`) and hide themselves via
 `requires()` when those columns are missing. A viewer widget queries the table and renders a visualization — it activates whenever the right columns are present in the table.
 
 ---
@@ -262,7 +255,7 @@ you've implemented all three.
 
 Once the package is installed in the same environment as `pixel_patrol_base`,
 everything is discovered automatically at runtime - no explicit registration
-or path needed when calling `create_project(..., loader="shark-cam")` or
+or path needed when calling `create_project(..., loader="tomato")` or
 `serve_viewer(report_path)`.
 
 ### Licensing
@@ -283,22 +276,41 @@ See the [Extensions docs](https://pixelpatrol.app/docs/extensions/#licensing) fo
 
 PixelPatrol discovers loaders, processors, and viewer extensions through
 Python entry points - which only works if your package is installed in the
-*same environment* as `pixel_patrol_base`. So first, make sure you're in that
+*same environment* as `pixel_patrol_base`.
+
+**Option 1: PixelPatrol is already installed**
+
+If you already have PixelPatrol installed, make sure you're in that
 environment, then install this package into it:
 
 ```sh
 uv pip install -e .
 ```
 
-If you want to test our minimal extension with the toy data to generate a
-interactive report, run the pipeline:
+To test the extension with the toy data, run the pipeline using the Python
+interpreter from that environment:
+
+```sh
+python create_and_show_report.py
+```
+
+**Option 2: Fresh installation**
+
+If you don't have PixelPatrol installed yet, you can set up the project and
+its dependencies (including `pixel_patrol_base`) with:
+
+```sh
+uv sync
+```
+
+Then run the pipeline:
 
 ```sh
 uv run python create_and_show_report.py
 ```
 
-This (re)generates the tiny dataset if `data/` is missing, processes it with
-the custom loader and processor, saves `out/results.parquet`, and serves the
+Both options (re)generate the tiny dataset if `data/` is missing, process it with
+the custom loader and processor, save `out/report.parquet`, and serve the
 viewer at `http://127.0.0.1:8052`. The viewer extension is loaded
 automatically because `serve_viewer` discovers the `pixel_patrol.viewer_extensions`
 entry-point declared in `pyproject.toml` - no explicit path needed.

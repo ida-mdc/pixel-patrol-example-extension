@@ -1,21 +1,24 @@
+
 """
 Minimal extension example.
 
 Shows how a PixelPatrol extension adds a custom loader and processor (Python)
 and viewer plugins (JavaScript) to the browser-based viewer.
 
-The "Pixel HAI Watch" dataset is a handful of tiny `.parquet` tables, each
-holding a 16x16 grid of `uint8` values plus fake "image metadata" (depth_zone)
-- read by SharkCamLoader as if they were deep-sea camera snapshots.
+The "Tomato Harvest Helper" dataset contains eight synthetic 32x32 RGB images
+stored as NPZ files, organized into greenhouse and outdoors folders.
+Each file stores the RGB pixel data and its season, which TomatoLoader
+extracts directly from the NPZ file.
 
 Steps
 -----
 1. Generate the tiny dataset (skipped if it already exists).
-2. Process the parquet "dive patches" with the custom loader and processor.
-   The processor adds ``glow_count`` and other columns to the table.
-3. Serve the parquet with the viewer. The server auto-discovers viewer
-   extensions from installed packages (``pixel_patrol.viewer_extensions``
-   entry-point group) and loads the JS plugins bundled with this package.
+2. Process the NPZ images with the custom loader and processor.
+The processor adds pixel counts for unripe, midripe and ripe tomatoes,
+as well as a total tomato pixel count.
+3. Serve the report with the viewer. The server auto-discovers viewer
+extensions from installed packages (``pixel_patrol.viewer_extensions``
+entry-point group) and loads the JS plugins bundled with this package.
 
 Usage
 -----
@@ -42,15 +45,16 @@ if __name__ == "__main__":
     output.parent.mkdir(parents=True, exist_ok=True)
 
     project = create_project(
-        "Pixel HAI Watch",
+        "Tomato Harvest Helper",
         data_dir,
-        loader="shark-cam",
+        loader="tomato",
         output_path=output,
     )
-    project = add_paths(project, ["azores_log", "kermadec_log"])
-    # `description` is shown right below the title in the viewer and stored
-    # in the parquet metadata - the natural home for a project blurb
-    # (as opposed to per-file metadata, which SharkCamLoader reads instead).
+
+    project = add_paths(project, ["greenhouse", "outdoors"])
+
+    # The project description is shown below the title in the viewer
+    # and stored in the report metadata, separately from the NPZ metadata.
     project = process_files(project, description=DESCRIPTION)
 
     serve_viewer(output)

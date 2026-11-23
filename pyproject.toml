@@ -1,5 +1,5 @@
 [project]
-name = "pixel-patrol-hai-watch"
+name = "pixel-patrol-tomato-harvest-helper"
 version = "0.1.0"
 description = "Minimal extension example for PixelPatrol."
 readme = "README.md"
@@ -8,7 +8,8 @@ license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "pixel_patrol_base>=0.1.0",
-    "pyarrow",
+    "numpy",
+    "pillow",
 ]
 
 [project.urls]
@@ -19,14 +20,13 @@ Repository = "https://github.com/ida-mdc/pixel-patrol-example-extension"
 package = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pixel_patrol_hai_watch"]
+packages = ["src/pixel_patrol_tomato_harvest_helper"]
 
 [project.entry-points."pixel_patrol.loader_plugins"]
-my_extension_loaders = "pixel_patrol_hai_watch.plugin_registry:register_loader_plugins"
+my_extension_loaders = "pixel_patrol_tomato_harvest_helper.plugin_registry:register_loader_plugins"
 
 [project.entry-points."pixel_patrol.processor_plugins"]
-my_extension_processors = "pixel_patrol_hai_watch.plugin_registry:register_processor_plugins"
+my_extension_processors = "pixel_patrol_tomato_harvest_helper.plugin_registry:register_processor_plugins"
 
 [project.entry-points."pixel_patrol.viewer_extensions"]
-my_extension_viewer = "pixel_patrol_hai_watch.plugin_registry:get_viewer_extension_dir"
-
+my_extension_viewer = "pixel_patrol_tomato_harvest_helper.plugin_registry:get_viewer_extension_dir"
